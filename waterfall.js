@@ -1,7 +1,3 @@
-var margin = {top: 20, right: 30, bottom: 30, left: 40},
-  width = 960 - margin.left - margin.right,
-  height = 500 - margin.top - margin.bottom;
-
 async function fetchData() {
   const data = await fetch('data.json');
   const res = await data.json();
@@ -22,14 +18,25 @@ const vm = new Vue({
   data() {
     return {
       rawData: [],
+      margin: {top: 20, right: 30, bottom: 30, left: 40},
       padding: 0.3,
-      width: width + margin.left + margin.right,
-      height: height + margin.top + margin.bottom,
-      transform: `translate(${margin.left},${margin.top})`,
-      transformXAxis: `translate(0,${height})`
+      width: 960,
+      height: 500
     }
   },
   computed: {
+    widthMargin: function() {
+      return this.width - this.margin.left - this.margin.right;
+    },
+    heightMargin: function() {
+      return this.height - this.margin.top - this.margin.bottom;
+    },
+    transform: function() {
+      return `translate(${this.margin.left},${this.margin.top})`;
+    },
+    transformXAxis: function() {
+      return `translate(0,${this.heightMargin})`;
+    },
     data: function() {
       // Transform data (i.e., finding cumulative values and total) for easier charting
       const res = JSON.parse(JSON.stringify(this.rawData));
@@ -51,14 +58,14 @@ const vm = new Vue({
     },
     x: function() {
       const res = d3.scaleBand()
-        .rangeRound([0, width])
+        .rangeRound([0, this.widthMargin])
         .padding(this.padding);
       res.domain(this.data.map(d => d.name));
       return res;
     },
     y: function() {
       const res = d3.scaleLinear()
-        .range([height, 0]);
+        .range([this.heightMargin, 0]);
       res.domain([0, d3.max(this.data, d => d.end)]);
       return res;
     }

@@ -1,79 +1,6 @@
 var margin = {top: 20, right: 30, bottom: 30, left: 40},
   width = 960 - margin.left - margin.right,
-  height = 500 - margin.top - margin.bottom,
-  padding = 0.3;
-
-var x = d3.scaleBand()
-  .rangeRound([0, width])
-  .padding(padding);
-
-var y = d3.scaleLinear()
-  .range([height, 0]);
-
-var xAxis = d3.axisBottom(x);
-
-var yAxis = d3.axisLeft(y).tickFormat(function(d) { return dollarFormatter(d); });
-
-var chart = d3.select(".chart")
-  .attr("width", width + margin.left + margin.right)
-  .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-fetchData().then(data => {
-
-  // Transform data (i.e., finding cumulative values and total) for easier charting
-  var cumulative = 0;
-  for (var i = 0; i < data.length; i++) {
-    data[i].start = cumulative;
-    cumulative += data[i].value;
-    data[i].end = cumulative;
-
-    data[i].class = ( data[i].value >= 0 ) ? 'positive' : 'negative'
-  }
-  data.push({
-    name: 'Total',
-    end: cumulative,
-    start: 0,
-    class: 'total'
-  });
-
-  x.domain(data.map(function(d) { return d.name; }));
-  y.domain([0, d3.max(data, function(d) { return d.end; })]);
-
-  chart.append("g")
-    .attr("class", "x axis")
-    .attr("transform", "translate(0," + height + ")")
-    .call(xAxis);
-
-  chart.append("g")
-    .attr("class", "y axis")
-    .call(yAxis);
-
-  var bar = chart.selectAll(".bar")
-    .data(data)
-    .enter().append("g")
-    .attr("class", function(d) { return "bar " + d.class })
-    .attr("transform", function(d) { return "translate(" + x(d.name) + ",0)"; });
-
-  bar.append("rect")
-    .attr("y", function(d) { return y( Math.max(d.start, d.end) ); })
-    .attr("height", function(d) { return Math.abs( y(d.start) - y(d.end) ); })
-    .attr("width", x.bandwidth());
-
-  bar.append("text")
-    .attr("x", x.bandwidth() / 2)
-    .attr("y", function(d) { return y(d.end) + 5; })
-    .attr("dy", function(d) { return ((d.class=='negative') ? '-' : '') + ".75em" })
-    .text(function(d) { return dollarFormatter(d.end - d.start);});
-
-  bar.filter(function(d) { return d.class != "total" }).append("line")
-    .attr("class", "connector")
-    .attr("x1", x.bandwidth() + 5 )
-    .attr("y1", function(d) { return y(d.end) } )
-    .attr("x2", x.bandwidth() / ( 1 - padding) - 5 )
-    .attr("y2", function(d) { return y(d.end) } )
-});
+  height = 500 - margin.top - margin.bottom;
 
 async function fetchData() {
   const data = await fetch('data.json');
@@ -89,3 +16,85 @@ function dollarFormatter(n) {
   }
   return '$' + result;
 }
+
+const vm = new Vue({
+  el: "#app",
+  data() {
+    return {
+      rawData: [],
+      padding: 0.3,
+      width: width + margin.left + margin.right,
+      height: height + margin.top + margin.bottom,
+      transform: `translate(${margin.left},${margin.top})`,
+      transformXAxis: `translate(0,${height})`
+    }
+  },
+  computed: {
+    data: function() {
+      // Transform data (i.e., finding cumulative values and total) for easier charting
+      const res = JSON.parse(JSON.stringify(this.rawData));
+      var cumulative = 0;
+      for (var i = 0; i < res.length; i++) {
+        res[i].start = cumulative;
+        cumulative += res[i].value;
+        res[i].end = cumulative;
+
+        res[i].class = ( res[i].value >= 0 ) ? 'positive' : 'negative'
+      }
+      res.push({
+        name: 'Total',
+        end: cumulative,
+        start: 0,
+        class: 'total'
+      });
+      return res;
+    },
+    x: function() {
+      const res = d3.scaleBand()
+        .rangeRound([0, width])
+        .padding(this.padding);
+      res.domain(this.data.map(d => d.name));
+      return res;
+    },
+    y: function() {
+      const res = d3.scaleLinear()
+        .range([height, 0]);
+      res.domain([0, d3.max(this.data, d => d.end)]);
+      return res;
+    }
+  },
+  methods: {
+    transformEl: function(el) {
+      return "translate(" + this.x(el.name) + ",0)";
+    },
+    reactY: function(el) {
+      return this.y(Math.max(el.start, el.end));
+    },
+    rectHeight: function(el) {
+      return Math.abs(this.y(el.start) - this.y(el.end));
+    },
+    textY: function(el) {
+      return this.y(el.end) + 5;
+    },
+    textDy: function(el) {
+      return ((el.class === 'negative') ? '-' : '') + ".75em";
+    },
+    text: function(el) {
+      return dollarFormatter(el.end - el.start);
+    },
+    lineY: function(el) {
+      return this.y(el.end);
+    }
+  },
+  mounted() {
+    fetchData().then(rawData => {
+      this.rawData = rawData;
+
+      var xAxis = d3.axisBottom(this.x);
+      xAxis(d3.select(".x"));
+
+      var yAxis = d3.axisLeft(this.y).tickFormat(function(d) { return dollarFormatter(d); });
+      yAxis(d3.select(".y"));
+    });
+  }
+});

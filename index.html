@@ -1,6 +1,26 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<link rel="stylesheet" href="style.css">
-<svg class="chart"></svg>
-<script src="d3.min.js"></script>
-<script src="waterfall.js"></script>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+  <script src="vue.js"></script>
+  <script src="d3.min.js"></script>
+</head>
+
+<body>
+  <div id="app">
+    <svg :width="width" :height="height">
+      <g class="chart" :transform="transform">
+        <g class="x axis" :transform="transformXAxis"></g>
+        <g class="y axis"></g>
+        <template v-for="el in data">
+          <g class="bar" :class="el.class" :transform="transformEl(el)">
+            <rect :y="reactY(el)" :height="rectHeight(el)" :width="x.bandwidth()"></rect>
+            <text :x="x.bandwidth() / 2" :y="textY(el)" :dy="textDy(el)">{{text(el)}}</text>
+            <line v-if="el.class != 'total'" class="connector" :x1="x.bandwidth() + 5" :y1="lineY(el)" :x2="x.bandwidth() / (1 - padding) - 5" :y2="lineY(el)"></line>
+          </g>
+        </template>
+      </g>
+    </svg>
+  </div>
+  <script src="waterfall.js"></script>
+</body>

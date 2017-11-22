@@ -93,15 +93,14 @@ const vm = new Vue({
       return this.y(el.end);
     }
   },
-  mounted() {
-    fetchData().then(rawData => {
-      this.rawData = rawData;
+  async mounted() {
+    const rawData = await fetchData();
+    this.rawData = rawData;
 
-      var xAxis = d3.axisBottom(this.x);
-      xAxis(d3.select(".x"));
+    var xAxis = d3.axisBottom(this.x);
+    xAxis(d3.select(".x"));
 
-      var yAxis = d3.axisLeft(this.y).tickFormat(function(d) { return dollarFormatter(d); });
-      yAxis(d3.select(".y"));
-    });
+    var yAxis = d3.axisLeft(this.y).tickFormat(function(d) { return dollarFormatter(d); });
+    yAxis(d3.select(".y"));
   }
 });
